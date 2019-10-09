@@ -13,17 +13,17 @@ function _getABIs() {
 function _addABI(abiArray) {
   if (Array.isArray(abiArray)) {
     // Iterate new abi to generate method id"s
-    abiArray.map(function(abi) {
+    abiArray.map(function (abi) {
       if (abi.name) {
         const signature = sha3(
           abi.name +
-            "(" +
-            abi.inputs
-              .map(function(input) {
-                return input.type;
-              })
-              .join(",") +
-            ")"
+          "(" +
+          abi.inputs
+            .map(function (input) {
+              return getType(input)
+            })
+            .join(",") +
+          ")"
         );
         if (abi.type === "event") {
           state.methodIDs[signature.slice(2)] = abi;
@@ -39,20 +39,40 @@ function _addABI(abiArray) {
   }
 }
 
+function getType(input) {
+  if (input.type === 'tuple') {
+    return '(' + input.components.map(function (deepInput) {
+      return getType(deepInput)
+    }).join(',') + ')'
+  }
+  return input.type
+}
+
+function getTypeArray(input) {
+  if (input.type === 'tuple') {
+    let object = {}
+    input.components.forEach(function (deepInput) {
+      object[deepInput.name] = getTypeArray(deepInput)
+    })
+    return object
+  }
+  return input.type
+}
+
 function _removeABI(abiArray) {
   if (Array.isArray(abiArray)) {
     // Iterate new abi to generate method id"s
-    abiArray.map(function(abi) {
+    abiArray.map(function (abi) {
       if (abi.name) {
         const signature = sha3(
           abi.name +
-            "(" +
-            abi.inputs
-              .map(function(input) {
-                return input.type;
-              })
-              .join(",") +
-            ")"
+          "(" +
+          abi.inputs
+            .map(function (input) {
+              return input.type;
+            })
+            .join(",") +
+          ")"
         );
         if (abi.type === "event") {
           if (state.methodIDs[signature.slice(2)]) {
@@ -78,7 +98,7 @@ function _decodeMethod(data) {
   const methodID = data.slice(2, 10);
   const abiItem = state.methodIDs[methodID];
   if (abiItem) {
-    const params = abiItem.inputs.map(function(item) {
+    const params = abiItem.inputs.map(function (item) {
       return item.type;
     });
     let decoded = abiCoder.decodeParameters(params, data.slice(10));
@@ -138,9 +158,9 @@ function _decodeLogs(logs) {
       let topicsIndex = 1;
 
       let dataTypes = [];
-      method.inputs.map(function(input) {
+      method.inputs.map(function (input) {
         if (!input.indexed) {
-          dataTypes.push(input.type);
+          dataTypes.push(input);
         }
       });
 
@@ -148,9 +168,8 @@ function _decodeLogs(logs) {
         dataTypes,
         logData.slice(2)
       );
-
       // Loop topic and data to get the params
-      method.inputs.map(function(param) {
+      method.inputs.map(function (param) {
         let decodedP = {
           name: param.name,
           type: param.type,
@@ -186,7 +205,7 @@ function _decodeLogs(logs) {
           } else {
             decodedP.value = new BN(decodedP.value).toString(10);
           }
-          
+
         }
 
         decodedParams.push(decodedP);
