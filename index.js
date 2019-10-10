@@ -215,6 +215,7 @@ function _decodeLogs(logs) {
         name: method.name,
         events: decodedParams,
         address: logItem.address,
+        logIndex: logItem.logIndex
       };
     }
   });
