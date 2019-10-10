@@ -20,7 +20,7 @@ function _addABI(abiArray) {
           "(" +
           abi.inputs
             .map(function (input) {
-              return getType(input)
+              return getType(input);
             })
             .join(",") +
           ")"
@@ -40,23 +40,12 @@ function _addABI(abiArray) {
 }
 
 function getType(input) {
-  if (input.type === 'tuple') {
-    return '(' + input.components.map(function (deepInput) {
-      return getType(deepInput)
-    }).join(',') + ')'
+  if (input.type === "tuple") {
+    return "(" + input.components.map(function (deepInput) {
+      return getType(deepInput);
+    }).join(",") + ")";
   }
-  return input.type
-}
-
-function getTypeArray(input) {
-  if (input.type === 'tuple') {
-    let object = {}
-    input.components.forEach(function (deepInput) {
-      object[deepInput.name] = getTypeArray(deepInput)
-    })
-    return object
-  }
-  return input.type
+  return input.type;
 }
 
 function _removeABI(abiArray) {
@@ -156,15 +145,14 @@ function _decodeLogs(logs) {
       let decodedParams = [];
       let dataIndex = 0;
       let topicsIndex = 1;
-
+      let invalid = false;
       let dataTypes = [];
       method.inputs.map(function (input) {
         if (!input.indexed) {
           dataTypes.push(input);
         }
       });
-
-      const decodedData = abiCoder.decodeParameters(
+      let decodedData = abiCoder.decodeParameters(
         dataTypes,
         logData.slice(2)
       );
@@ -182,7 +170,10 @@ function _decodeLogs(logs) {
           decodedP.value = decodedData[dataIndex];
           dataIndex++;
         }
-
+        if (decodedP.value === undefined) {
+          invalid = true;
+          return;
+        }
         if (param.type === "address") {
           decodedP.value = decodedP.value.toLowerCase();
           // 42 because len(0x) + 40
@@ -210,7 +201,9 @@ function _decodeLogs(logs) {
 
         decodedParams.push(decodedP);
       });
-
+      if (invalid) {
+        return undefined;
+      }
       return {
         name: method.name,
         events: decodedParams,
