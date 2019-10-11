@@ -152,10 +152,15 @@ function _decodeLogs(logs) {
           dataTypes.push(input);
         }
       });
-      let decodedData = abiCoder.decodeParameters(
-        dataTypes,
-        logData.slice(2)
-      );
+      let decodedData;
+      try {
+        decodedData = abiCoder.decodeParameters(
+          dataTypes,
+          logData.slice(2)
+        );
+      } catch (e) {
+        return undefined;
+      }
       // Loop topic and data to get the params
       method.inputs.map(function (param) {
         let decodedP = {
